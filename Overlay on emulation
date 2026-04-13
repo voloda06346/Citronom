@@ -1,1 +1,306 @@
+// 3DS Emulation Overlay System
+// Syncs with ThreeDSCore for display rendering and menu management
 
+class EmulationOverlay {
+    constructor(core) {
+        this.core = core;
+        this.isVisible = true;
+        this.menuOpen = false;
+        this.fpsMeter = new FPSMeter();
+        this.displayBuffer = null;
+        this.overlayElements = [];
+    }
+
+    // Initialize overlay and bind to core
+    initialize() {
+        this.setupDisplayBuffer();
+        this.bindToCore();
+        this.registerOverlayElements();
+    }
+
+    // Setup display buffer for overlay rendering
+    setupDisplayBuffer() {
+        // 3DS has dual screens: top 400x240, bottom 320x240
+        this.topScreenBuffer = new FrameBuffer(400, 240);
+        this.bottomScreenBuffer = new FrameBuffer(320, 240);
+        this.displayBuffer = {
+            top: this.topScreenBuffer,
+            bottom: this.bottomScreenBuffer
+        };
+    }
+
+    // Bind overlay to core events
+    bindToCore() {
+        // Listen to core execution cycles
+        this.core.onFrameComplete(() => {
+            this.render();
+        });
+
+        this.core.onStateChange((state) => {
+            this.updateOverlayState(state);
+        });
+    }
+
+    // Register overlay UI elements
+    registerOverlayElements() {
+        this.overlayElements.push(
+            new FPSDisplay(10, 10),
+            new CPUUsageDisplay(10, 30),
+            new MemoryDisplay(10, 50),
+            new StatusIndicator(350, 10)
+        );
+    }
+
+    // Render overlay on top of game frame
+    render() {
+        if (!this.isVisible) return;
+
+        // Clear overlay layers
+        this.topScreenBuffer.clearOverlay();
+        this.bottomScreenBuffer.clearOverlay();
+
+        // Render all overlay elements
+        for (let element of this.overlayElements) {
+            if (element.isVisible) {
+                element.render(this.topScreenBuffer);
+            }
+        }
+
+        // Render menu if open
+        if (this.menuOpen) {
+            this.renderMenu();
+        }
+
+        // Sync rendered overlay back to core
+        this.syncToCore();
+    }
+
+    // Render in-game menu
+    renderMenu() {
+        const menu = new OverlayMenu();
+        menu.addOption('Save State');
+        menu.addOption('Load State');
+        menu.addOption('Settings');
+        menu.addOption('Exit Game');
+        menu.render(this.topScreenBuffer);
+    }
+
+    // Synchronize overlay state with core
+    syncToCore() {
+        this.core.updateDisplayBuffer({
+            top: this.topScreenBuffer.getData(),
+            bottom: this.bottomScreenBuffer.getData()
+        });
+    }
+
+    // Update overlay based on core state
+    updateOverlayState(coreState) {
+        if (coreState.isPaused) {
+            this.showPauseIndicator();
+        }
+        if (coreState.hasError) {
+            this.showErrorMessage(coreState.errorMsg);
+        }
+    }
+
+    // Toggle overlay visibility
+    toggleVisibility() {
+        this.isVisible = !this.isVisible;
+    }
+
+    // Toggle menu display
+    toggleMenu() {
+        this.menuOpen = !this.menuOpen;
+    }
+
+    // Show FPS counter
+    showFPSCounter() {
+        this.fpsMeter.start();
+    }
+
+    // Show pause indicator
+    showPauseIndicator() {
+        const pauseIndicator = new TextElement('PAUSED', 175, 110, '#FF0000');
+        pauseIndicator.render(this.topScreenBuffer);
+    }
+
+    // Show error message
+    showErrorMessage(message) {
+        const errorBox = new ErrorBox(message);
+        errorBox.render(this.topScreenBuffer);
+    }
+
+    // Handle input from core
+    handleInput(inputData) {
+        if (inputData.menuToggle) {
+            this.toggleMenu();
+        }
+        if (inputData.overlayToggle) {
+            this.toggleVisibility();
+        }
+        if (this.menuOpen) {
+            this.menuInput(inputData);
+        }
+    }
+
+    // Process menu input
+    menuInput(inputData) {
+        if (inputData.up) this.navigateMenuUp();
+        if (inputData.down) this.navigateMenuDown();
+        if (inputData.select) this.selectMenuItem();
+    }
+
+    // Navigate menu
+    navigateMenuUp() {
+        // Menu navigation logic
+    }
+
+    navigateMenuDown() {
+        // Menu navigation logic
+    }
+
+    selectMenuItem() {
+        // Menu selection logic
+    }
+}
+
+class FrameBuffer {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.data = new Uint32Array(width * height);
+        this.overlayData = new Uint32Array(width * height);
+    }
+
+    clearOverlay() {
+        this.overlayData.fill(0);
+    }
+
+    getData() {
+        return this.data;
+    }
+
+    getOverlayData() {
+        return this.overlayData;
+    }
+}
+
+class FPSMeter {
+    constructor() {
+        this.frameCount = 0;
+        this.lastTime = Date.now();
+        this.currentFPS = 0;
+    }
+
+    start() {
+        this.frameCount++;
+        const now = Date.now();
+        if (now - this.lastTime >= 1000) {
+            this.currentFPS = this.frameCount;
+            this.frameCount = 0;
+            this.lastTime = now;
+        }
+    }
+
+    getFPS() {
+        return this.currentFPS;
+    }
+}
+
+class FPSDisplay {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.isVisible = true;
+    }
+
+    render(buffer) {
+        // Render FPS text to buffer
+    }
+}
+
+class CPUUsageDisplay {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.isVisible = true;
+    }
+
+    render(buffer) {
+        // Render CPU usage to buffer
+    }
+}
+
+class MemoryDisplay {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.isVisible = true;
+    }
+
+    render(buffer) {
+        // Render memory usage to buffer
+    }
+}
+
+class StatusIndicator {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.isVisible = true;
+    }
+
+    render(buffer) {
+        // Render status indicator to buffer
+    }
+}
+
+class OverlayMenu {
+    constructor() {
+        this.options = [];
+        this.selectedIndex = 0;
+    }
+
+    addOption(label) {
+        this.options.push(label);
+    }
+
+    render(buffer) {
+        // Render menu to buffer
+    }
+}
+
+class TextElement {
+    constructor(text, x, y, color) {
+        this.text = text;
+        this.x = x;
+        this.y = y;
+        this.color = color;
+    }
+
+    render(buffer) {
+        // Render text to buffer
+    }
+}
+
+class ErrorBox {
+    constructor(message) {
+        this.message = message;
+    }
+
+    render(buffer) {
+        // Render error box to buffer
+    }
+}
+
+// Initialize overlay with core
+function initializeEmulationOverlay(threeDSCore) {
+    const overlay = new EmulationOverlay(threeDSCore);
+    overlay.initialize();
+    return overlay;
+}
+
+// Example usage integration
+const core = new ThreeDSCore();
+const overlay = initializeEmulationOverlay(core);
+core.overlay = overlay;
