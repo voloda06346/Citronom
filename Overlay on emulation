@@ -1,5 +1,5 @@
 // 3DS Emulation Overlay System
-// Syncs with ThreeDSCore for display rendering and menu management
+// Syncs with 3DSCore for display rendering and menu management
 
 class EmulationOverlay {
     constructor(core) {
