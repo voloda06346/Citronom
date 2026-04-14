@@ -1,26 +1,55 @@
-name: Android CI
+cmake_minimum_required(VERSION 3.10.2)
+project(citra_android CXX)
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+# Подключаем исходники Citra
+add_subdirectory(citra)
 
-jobs:
-  build:
+# Создаём библиотеку
+add_library(citra-android SHARED
+    src/main/cpp/native-lib.cpp)
 
-    runs-on: ubuntu-latest
+# Указываем зависимости
+target_link_libraries(citra-android
+    citra
+    android
+    log)
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: set up JDK 11
-      uses: actions/setup-java@v4
-      with:
-        java-version: '11'
-        distribution: 'temurin'
-        cache: gradle
+    <Button
+        android:id="@+id/btn_select_rom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выбрать папку с ROM" />
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew build
+    <ListView
+        android:id="@+id/list_roms"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</LinearLayout>
+#include <jni.h>
+#include "citra/core.h" // Заголовочные файлы Citra
+
+extern "C" JNIEXPORT void JNICALLTYPE
+Java_org_citra_3ds_MainActivity_loadROM(
+        JNIEnv* env, jobject thiz, jstring romPath) {
+    const char* path = env->GetStringUTFChars(romPath, nullptr);
+    // Вызов функции Citra для загрузки ROM
+    Citra::LoadROM(path);
+    env->ReleaseStringUTFChars(romPath, path);
+}
+public class MainActivity extends AppCompatActivity {
+    static {
+        System.loadLibrary("citra-android");
+    }
+
+    public native void loadROM(String romPath);
+
+    // ... остальной код
+}
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+<uses-feature android:glEsVersion="0x00020000" android:required="true" />
