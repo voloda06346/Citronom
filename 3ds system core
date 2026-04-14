@@ -1,73 +1,33 @@
-// 3DS System Core Implementation
+#include <3ds.h>
+#include <stdio.h>
 
-// Includes components for:
-// - ROM loading
-// - ARM CPU emulation
-// - Memory management
-// - System configuration parsing
-// - Game execution pipeline
-// - Support for common 3DS file formats (CCI/3DS, CSO, CIA)
+int main(void) {
+    gfxInitDefault(); // Инициализация графики
+    consoleInit(GFX_TOP, NULL); // Консоль на верхнем экране
 
-class ThreeDSCore {
-    constructor() {
-        this.romData = null;
-        this.memoryManager = new MemoryManager();
-        this.cpu = new ARMCPU();
-        this.config = {};
-    }
+    while (aptMainLoop()) {
+        hidScanInput(); // Опрашиваем ввод
+        u32 kDown = hidKeysDown();
 
-    loadROM(filePath) {
-        // Logic to load the ROM from filePath
-        this.romData = readFile(filePath);
-    }
+        // Выводим текст
+        printf("\x1b[2;0HHello 3DS ARM11!\n");
+        printf("Press START to exit.\n");
 
-    parseConfig(configData) {
-        // Parsing logic for system configuration
-        this.config = JSON.parse(configData);
-    }
-
-    initialize() {
-        // Initialize memory and CPU
-        this.memoryManager.initialize();
-        this.cpu.initialize();
-    }
-
-    executeGame() {
-        // Main game execution pipeline
-        if (this.romData) {
-            this.initialize();
-            // Start executing with the loaded ROM
-            this.cpu.execute(this.romData);
-        } else {
-            throw new Error('ROM not loaded.');
+        // Мигаем светодиодом
+        if (kDown & KEY_A) {
+            gpioWrite(GPIO_LED_RED, 1);
+            svcSleepThread(500000000LL); // 0.5 с
+            gpioWrite(GPIO_LED_RED, 0);
+            svcSleepThread(500000000LL);
         }
-    }
-}
 
-// Supporting classes can be defined below
+        if (kDown & KEY_START) break; // Выход по START
 
-class MemoryManager {
-    // Memory management code
-}
-
-class ARMCPU {
-    // ARM CPU emulation code
-
-    initialize() {
-        // Initialization code for CPU
+        gfxFlushBuffers();
+        gfxSwapBuffers();
+        gspWaitForVBlank();
     }
 
-    execute(romData) {
-        // Execute game code
-    }
+    gfxExit();
+    return 0;
 }
-
-function readFile(filePath) {
-    // Function to read file from disk
-    return new Uint8Array([]); // Dummy return for example
-}
-
-// Example usage
-const core = new ThreeDSCore();
-core.loadROM('path/to/3ds/file');
-core.executeGame();
