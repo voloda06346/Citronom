@@ -1,34 +1,37 @@
+package com.voloda06346.citronom;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Random;
 
 public class Nintendo3dsOnlineFeatures {
 
-    public static void checkAndGenerateNetworkFiles(String baseStoragePath) {
-        // Путь к системной папке данных (sysdata) внутри NAND эмулятора
-        File sysdataDir = new File(baseStoragePath + "/nand/data/0000000000000000/sysdata/00010011");
-        
-        if (!sysdataDir.exists()) {
-            sysdataDir.mkdirs();
+    public static void initializeFriendSeed(String externalFilesDir) {
+        // Конструируем официальный путь NAND памяти 3DS для системных данных
+        String sysdataPath = externalFilesDir + "/nand/data/0000000000000000/sysdata/00010011";
+        File directory = new File(sysdataPath);
+
+        // Создаем папки, если их еще нет в эмуляторе
+        if (!directory.exists()) {
+            directory.mkdirs();
         }
 
-        File friendSeedFile = new File(sysdataDir, "LocalFriendCodeSeed_B");
+        File seedFile = new File(directory, "LocalFriendCodeSeed_B");
 
-        // Если файла нет — генерируем заглушку, чтобы Citronom не падал
-        if (!friendSeedFile.exists()) {
-            byte[] fakeSeed = new byte[32];
-            Random random = new Random();
-            random.nextBytes(fakeSeed);
-            
-            // Выставляем валидный стартовый байт для обхода внутренней проверки
-            fakeSeed[0] = 0x0B; 
+        // Если файла нет — дёргаем нативное ядро и создаем правильный сид с нуля
+        if (!seedFile.exists()) {
+            try {
+                ApkEmulatorCore core = new ApkEmulatorCore();
+                byte[] generatedSeed = core.generateNativeFriendSeed();
 
-            try (FileOutputStream fos = new FileOutputStream(friendSeedFile)) {
-                fos.write(fakeSeed);
-                System.out.println("Citronom: Сгенерирован эмулируемый LocalFriendCodeSeed_B");
+                try (FileOutputStream fos = new FileOutputStream(seedFile)) {
+                    fos.write(generatedSeed);
+                    System.out.println("Citronom Network: Успешно сгенерирован новый LocalFriendCodeSeed_B");
+                }
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("Citronom Network: Ошибка записи сида друга: " + e.getMessage());
+            } catch (UnsatisfiedLinkError e) {
+                System.err.println("Citronom Network: Нативная библиотека ядра не загружена: " + e.getMessage());
             }
         }
     }
