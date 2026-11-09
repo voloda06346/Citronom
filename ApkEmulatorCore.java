@@ -26,3 +26,14 @@ std::vector<uint8_t> GenerateFakeFriendSeed() {
 
     return fake_seed;
 }
+package com.voloda06346.citronom;
+
+public class ApkEmulatorCore {
+    static {
+        // Загружаем твою нативную библиотеку ядра Citronom
+        System.loadLibrary("native-lib");
+    }
+
+    // Объявляем C++ генератор
+    public native byte[] generateNativeFriendSeed();
+}
