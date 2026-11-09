@@ -1,69 +1,28 @@
-// ApkEmulatorCore.java
+#include <vector>
+#include <random>
+#include <cstdint>
 
-import java.io.*;
-import java.util.*;
+// Структура для генерации чистых сетевых данных внутри Citronom
+std::vector<uint8_t> GenerateFakeFriendSeed() {
+    std::vector<uint8_t> fake_seed(32, 0);
 
-public class ApkEmulatorCore {
+    // Инициализируем генератор случайных чисел
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint8_t> dis(0x00, 0xFF);
 
-    private List<String> gamingCoins;
-    private String romPath;
-    private String extractedApkPath;
-    private Map<String, String> graphicOptions;
-
-    public ApkEmulatorCore() {
-        gamingCoins = new ArrayList<>();
-        graphicOptions = new HashMap<>();
+    // Заполняем базовую часть случайными байтами (имитируем Console ID)
+    for (int i = 0; i < 8; ++i) {
+        fake_seed[i] = dis(gen);
     }
 
-    // Method to extract APK from a given path
-    public void extractApk(String apkFilePath) throws IOException {
-        // Logic for APK extraction
-        extractedApkPath = "path_to_extracted_apk"; // Update with actual extraction logic
-        System.out.println("APK extracted to: " + extractedApkPath);
+    // Первые байты не должны быть полностью нулевыми, задаем валидный префикс региона
+    fake_seed[0] = 0x0B; // Пример стандартного заголовка для retail-консолей
+    
+    // Остальные 24 байта заполняем криптографической заглушкой
+    for (int i = 8; i < 32; ++i) {
+        fake_seed[i] = dis(gen);
     }
 
-    // Method to load ROMs of various formats
-    public void loadRom(String romFilePath) {
-        // Logic for loading ROM (3DS, CIA, CCI formats)
-        romPath = romFilePath;
-        System.out.println("ROM loaded: " + romPath);
-        // Add more logic as needed
-    }
-
-    // Adjust graphic options
-    public void setGraphicOption(String optionKey, String optionValue) {
-        graphicOptions.put(optionKey, optionValue);
-        System.out.println("Graphic option set: " + optionKey + " = " + optionValue);
-    }
-
-    // Method for folder access for game files
-    public List<File> accessGameFolder(String folderPath) throws IOException {
-        File folder = new File(folderPath);
-        if(!folder.exists() || !folder.isDirectory()) {
-            throw new IOException("Invalid folder path.");
-        }
-        return Arrays.asList(Objects.requireNonNull(folder.listFiles()));
-    }
-
-    // Method for counting game coins
-    public void addGamingCoins(int coins) {
-        gamingCoins.add(String.valueOf(coins));
-        System.out.println("Added gaming coins: " + coins);
-    }
-
-    public int getTotalGamingCoins() {
-        return gamingCoins.stream().mapToInt(Integer::parseInt).sum();
-    }
-
-    // Main method for local testing
-    public static void main(String[] args) {
-        ApkEmulatorCore emulator = new ApkEmulatorCore();
-        // Example usage
-        // emulator.extractApk("path/to/apk");
-        // emulator.loadRom("path/to/rom.3ds");
-        // emulator.setGraphicOption("Resolution", "1080p");
-        // List<File> gameFiles = emulator.accessGameFolder("path/to/game/files");
-        // emulator.addGamingCoins(10);
-        // System.out.println("Total Gaming Coins: " + emulator.getTotalGamingCoins());
-    }
+    return fake_seed;
 }
